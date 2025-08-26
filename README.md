@@ -63,7 +63,15 @@ This project follows **Hexagonal Architecture** (Ports and Adapters) principles:
    docker-compose up -d
    ```
 
-5. **Check service status**
+5. **Run migrations** (after PostgreSQL is ready)
+   ```bash
+   # Wait for PostgreSQL to be ready, then run migrations
+   make db-up
+   ```
+   
+   **Note**: Even in Docker environments, migrations should be run separately to ensure proper sequencing and avoid race conditions.
+
+6. **Check service status**
    ```bash
    docker-compose ps
    ```
@@ -90,8 +98,10 @@ The API will be available at `http://localhost:8080` and pgAdmin at `http://loca
 
 4. **Run migrations**
    ```bash
-   migrate -path migrations -database "postgres://postgres:postgres@localhost/adol_pos?sslmode=disable" up
+   make db-up
    ```
+   
+   **Important**: Migrations are NOT run automatically on application startup to prevent race conditions in multi-instance deployments. Always run migrations manually using the provided commands.
 
 5. **Copy and configure environment variables**
    ```bash
@@ -281,6 +291,41 @@ COMPANY_NAME=Your Company
 COMPANY_ADDRESS=Your Address
 COMPANY_PHONE=+1234567890
 COMPANY_EMAIL=info@company.com
+```
+
+## 🗄️ Database Migrations
+
+**⚠️ Important**: Migrations are NOT executed automatically on application startup to prevent race conditions in multi-instance deployments.
+
+### Migration Commands
+
+```bash
+# Run all pending migrations
+make db-up
+
+# Rollback the last migration
+make db-down
+
+# Reset database (rollback all, then apply all)
+make db-reset
+
+# Create a new migration file
+make db-create-migration
+```
+
+### Production Deployment Workflow
+
+1. **Before deploying**: Run migrations on a single instance or dedicated migration job
+2. **Deploy application**: Start application instances without migrations
+3. **Verify**: Ensure all instances connect successfully
+
+### Development Workflow
+
+```bash
+# Setup database and run migrations
+make setup        # Creates .env file
+make db-up        # Applies migrations
+make run          # Starts the application
 ```
 
 ## 🧪 Testing

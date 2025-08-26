@@ -34,12 +34,7 @@ func main() {
 	}
 	defer db.Close()
 
-	// Run migrations
-	if err := database.Migrate(db, cfg.Database.MigrationsPath); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
-
-	// Initialize HTTP server
+// Initialize HTTP server
 	server := httpInfra.NewServer(cfg, db, logger)
 	
 	// Start server in a goroutine
@@ -63,6 +58,7 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
+
 
 	logger.Info("Server exited")
 }

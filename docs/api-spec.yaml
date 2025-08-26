@@ -1,0 +1,1071 @@
+openapi: 3.0.3
+info:
+  title: ADOL Point of Sale API
+  description: |
+    Enterprise-grade Point of Sale backend system with comprehensive features for product management, 
+    inventory tracking, sales processing, and invoice generation.
+    
+    ## Authentication
+    This API uses JWT Bearer token authentication. Include the token in the Authorization header:
+    `Authorization: Bearer <token>`
+    
+    ## Error Handling
+    The API returns consistent error responses with the following structure:
+    ```json
+    {
+      "error": {
+        "type": "validation_error",
+        "message": "Invalid request data",
+        "details": "Field 'email' is required"
+      },
+      "request_id": "req_123456789"
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: ADOL Support
+    email: support@adol.pos
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://api.adol.pos/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  # Authentication endpoints
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and receive access and refresh tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  format: password
+                  example: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+                      refresh_token:
+                        type: string
+                      expires_in:
+                        type: integer
+                      user:
+                        $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+                    example: Login successful
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Generate new access token using refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+                      expires_in:
+                        type: integer
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Invalidate current session and tokens
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # User management endpoints
+  /users:
+    get:
+      tags:
+        - User Management
+      summary: List users
+      description: Retrieve paginated list of users with optional filtering
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: role
+          in: query
+          description: Filter by user role
+          schema:
+            $ref: '#/components/schemas/UserRole'
+        - name: status
+          in: query
+          description: Filter by user status
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+        - name: search
+          in: query
+          description: Search in username, email, first_name, last_name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/User'
+                      pagination:
+                        $ref: '#/components/schemas/PaginationInfo'
+                  message:
+                    type: string
+
+    post:
+      tags:
+        - User Management
+      summary: Create user
+      description: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/{id}:
+    get:
+      tags:
+        - User Management
+      summary: Get user by ID
+      description: Retrieve user details by user ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags:
+        - User Management
+      summary: Update user
+      description: Update user information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+    delete:
+      tags:
+        - User Management
+      summary: Delete user
+      description: Soft delete user account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # Product management endpoints
+  /products:
+    get:
+      tags:
+        - Product Management
+      summary: List products
+      description: Retrieve paginated list of products with optional filtering
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: category
+          in: query
+          description: Filter by product category
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by product status
+          schema:
+            $ref: '#/components/schemas/ProductStatus'
+        - name: search
+          in: query
+          description: Search in name, description, SKU
+          schema:
+            type: string
+        - name: min_price
+          in: query
+          description: Minimum price filter
+          schema:
+            type: number
+            format: decimal
+        - name: max_price
+          in: query
+          description: Maximum price filter
+          schema:
+            type: number
+            format: decimal
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      products:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Product'
+                      pagination:
+                        $ref: '#/components/schemas/PaginationInfo'
+                  message:
+                    type: string
+
+    post:
+      tags:
+        - Product Management
+      summary: Create product
+      description: Create a new product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                  message:
+                    type: string
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  # Sales management endpoints
+  /sales:
+    get:
+      tags:
+        - Sales Management
+      summary: List sales
+      description: Retrieve paginated list of sales with optional filtering
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          description: Filter by sale status
+          schema:
+            $ref: '#/components/schemas/SaleStatus'
+        - name: customer_name
+          in: query
+          description: Filter by customer name
+          schema:
+            type: string
+        - name: from_date
+          in: query
+          description: Filter sales from date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          description: Filter sales to date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Sales retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      sales:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Sale'
+                      pagination:
+                        $ref: '#/components/schemas/PaginationInfo'
+                  message:
+                    type: string
+
+    post:
+      tags:
+        - Sales Management
+      summary: Create sale
+      description: Create a new sale transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSaleRequest'
+      responses:
+        '201':
+          description: Sale created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Sale'
+                  message:
+                    type: string
+
+  /sales/{id}/complete:
+    post:
+      tags:
+        - Sales Management
+      summary: Complete sale
+      description: Complete a sale transaction with payment details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sale ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteSaleRequest'
+      responses:
+        '200':
+          description: Sale completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Sale'
+                  message:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  # Invoice management endpoints
+  /invoices/{id}/pdf:
+    get:
+      tags:
+        - Invoice Management
+      summary: Generate invoice PDF
+      description: Generate and download invoice as PDF
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Invoice ID
+          schema:
+            type: string
+            format: uuid
+        - name: paper_size
+          in: query
+          description: Paper size for PDF
+          schema:
+            $ref: '#/components/schemas/PaperSize'
+            default: a4
+      responses:
+        '200':
+          description: PDF generated successfully
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /invoices/{id}/email:
+    post:
+      tags:
+        - Invoice Management
+      summary: Send invoice email
+      description: Send invoice via email to customer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Invoice ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendInvoiceEmailRequest'
+      responses:
+        '200':
+          description: Invoice email sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # Health check endpoints
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: Basic health check endpoint
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  service:
+                    type: string
+                    example: adol-pos-api
+                  version:
+                    type: string
+                    example: 1.0.0
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              type: validation_error
+              message: Invalid request data
+              details: Field 'email' is required
+            request_id: req_123456789
+
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              type: authentication_error
+              message: Authentication required
+              details: Valid JWT token required
+            request_id: req_123456789
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              type: authorization_error
+              message: Insufficient permissions
+              details: Admin role required for this operation
+            request_id: req_123456789
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              type: not_found_error
+              message: Resource not found
+              details: User with ID not found
+            request_id: req_123456789
+
+    ConflictError:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              type: conflict_error
+              message: Resource already exists
+              details: Username already taken
+            request_id: req_123456789
+
+  schemas:
+    # Common schemas
+    SuccessResponse:
+      type: object
+      properties:
+        data:
+          type: object
+        message:
+          type: string
+        request_id:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            type:
+              type: string
+            message:
+              type: string
+            details:
+              type: string
+        request_id:
+          type: string
+
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total_count:
+          type: integer
+        total_pages:
+          type: integer
+        has_next:
+          type: boolean
+        has_prev:
+          type: boolean
+
+    # User related schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserRole:
+      type: string
+      enum:
+        - admin
+        - manager
+        - cashier
+        - employee
+
+    UserStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+        - suspended
+
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - email
+        - first_name
+        - last_name
+        - password
+        - role
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        password:
+          type: string
+          minLength: 8
+          format: password
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+          default: active
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+
+    # Product related schemas
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        price:
+          type: string
+          format: decimal
+        cost:
+          type: string
+          format: decimal
+        status:
+          $ref: '#/components/schemas/ProductStatus'
+        unit:
+          type: string
+        min_stock:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProductStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+        - discontinued
+
+    CreateProductRequest:
+      type: object
+      required:
+        - sku
+        - name
+        - price
+        - cost
+        - unit
+      properties:
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 100
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        category:
+          type: string
+          maxLength: 100
+        price:
+          type: string
+          format: decimal
+        cost:
+          type: string
+          format: decimal
+        unit:
+          type: string
+          maxLength: 20
+        min_stock:
+          type: integer
+          minimum: 0
+          default: 0
+        initial_stock:
+          type: integer
+          minimum: 0
+          default: 0
+
+    # Sale related schemas
+    Sale:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sale_number:
+          type: string
+        customer_name:
+          type: string
+        customer_email:
+          type: string
+          format: email
+        customer_phone:
+          type: string
+        subtotal:
+          type: string
+          format: decimal
+        tax_amount:
+          type: string
+          format: decimal
+        discount_amount:
+          type: string
+          format: decimal
+        total:
+          type: string
+          format: decimal
+        paid_amount:
+          type: string
+          format: decimal
+        change_amount:
+          type: string
+          format: decimal
+        payment_method:
+          type: string
+        status:
+          $ref: '#/components/schemas/SaleStatus'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SaleItem'
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    SaleStatus:
+      type: string
+      enum:
+        - pending
+        - completed
+        - cancelled
+
+    SaleItem:
+      type: object
+      properties:
+        product_id:
+          type: string
+          format: uuid
+        product_name:
+          type: string
+        quantity:
+          type: integer
+        unit_price:
+          type: string
+          format: decimal
+        total_price:
+          type: string
+          format: decimal
+
+    CreateSaleRequest:
+      type: object
+      properties:
+        customer_name:
+          type: string
+          maxLength: 255
+        customer_email:
+          type: string
+          format: email
+        customer_phone:
+          type: string
+          maxLength: 20
+
+    CompleteSaleRequest:
+      type: object
+      required:
+        - paid_amount
+        - payment_method
+      properties:
+        paid_amount:
+          type: string
+          format: decimal
+        payment_method:
+          type: string
+          enum:
+            - cash
+            - card
+            - bank_transfer
+            - digital_wallet
+        discount_amount:
+          type: string
+          format: decimal
+          default: "0.00"
+        tax_percentage:
+          type: string
+          format: decimal
+          default: "0.00"
+        notes:
+          type: string
+          maxLength: 500
+
+    # Invoice related schemas
+    PaperSize:
+      type: string
+      enum:
+        - a4
+        - a5
+        - letter
+        - legal
+        - receipt
+
+    SendInvoiceEmailRequest:
+      type: object
+      required:
+        - email_to
+      properties:
+        email_to:
+          type: string
+          format: email
+        subject:
+          type: string
+          default: Your Invoice
+        message:
+          type: string
+        paper_size:
+          $ref: '#/components/schemas/PaperSize'
+          default: a4
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: User Management
+    description: User account management
+  - name: Product Management
+    description: Product catalog management
+  - name: Sales Management
+    description: Sales transaction processing
+  - name: Invoice Management
+    description: Invoice generation and management
+  - name: System
+    description: System health and monitoring

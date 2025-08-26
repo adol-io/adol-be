@@ -1,0 +1,210 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+vendor/
+
+# Go workspace file
+go.work
+
+# Build artifacts
+bin/
+build/
+dist/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+logs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker volumes and data
+docker-data/
+postgres-data/
+
+# Coverage reports
+coverage.txt
+coverage.html
+coverage.out
+
+# Profiling data
+*.prof
+*.pprof
+
+# Documentation builds
+docs/build/
+
+# Generated files
+*.generated.go
+
+# Local configuration overrides
+config.local.yml
+config.local.yaml
+
+# Migration backup files
+*.backup
+
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
+*.p12
+
+# API documentation generated files
+docs/swagger/
+
+# Test data and fixtures
+testdata/generated/
+
+# Node modules (if frontend is added later)
+node_modules/
+
+# Package managers
+yarn.lock
+package-lock.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# next.js build output
+.next
+
+# Nuxt.js build output
+.nuxt
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# Lock files
+*.lock
+
+# Editor backup files
+*~
+*.swp
+*.swo
+
+# Compiled Object files
+*.o
+*.a
+
+# Debug info
+debug
+
+# Air live reload tool
+tmp/
+
+# Delve debugger
+__debug_bin
+
+# GoLand
+.idea/
+
+# VSCode
+.vscode/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*

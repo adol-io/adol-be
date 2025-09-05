@@ -34,9 +34,9 @@ func main() {
 	}
 	defer db.Close()
 
-// Initialize HTTP server
+	// Initialize HTTP server
 	server := httpInfra.NewServer(cfg, db, logger)
-	
+
 	// Start server in a goroutine
 	go func() {
 		logger.Info(fmt.Sprintf("Server starting on port %s", cfg.Server.Port))
@@ -58,7 +58,6 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
-
 
 	logger.Info("Server exited")
 }

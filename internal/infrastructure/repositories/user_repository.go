@@ -31,11 +31,12 @@ func NewPostgreSQLUserRepository(db *sql.DB) repositories.UserRepository {
 // Create creates a new user
 func (r *PostgreSQLUserRepository) Create(ctx context.Context, user *entities.User) error {
 	query := `
-		INSERT INTO users (id, username, email, first_name, last_name, role, status, password_hash, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+		INSERT INTO users (id, tenant_id, username, email, first_name, last_name, role, status, password_hash, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
 	_, err := r.db.ExecContext(ctx, query,
 		user.ID,
+		user.TenantID,
 		user.Username,
 		user.Email,
 		user.FirstName,
@@ -69,15 +70,16 @@ func (r *PostgreSQLUserRepository) Create(ctx context.Context, user *entities.Us
 // GetByID retrieves a user by ID
 func (r *PostgreSQLUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.User, error) {
 	query := `
-		SELECT id, username, email, first_name, last_name, role, status, password_hash, created_at, updated_at, last_login_at
+		SELECT id, tenant_id, username, email, first_name, last_name, role, status, password_hash, created_at, updated_at, last_login_at
 		FROM users 
-		WHERE id = $1`
+		WHERE id = $1 AND deleted_at IS NULL`
 
 	user := &entities.User{}
 	var lastLoginAt sql.NullTime
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&user.ID,
+		&user.TenantID,
 		&user.Username,
 		&user.Email,
 		&user.FirstName,
@@ -107,15 +109,16 @@ func (r *PostgreSQLUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*
 // GetByUsername retrieves a user by username
 func (r *PostgreSQLUserRepository) GetByUsername(ctx context.Context, username string) (*entities.User, error) {
 	query := `
-		SELECT id, username, email, first_name, last_name, role, status, password_hash, created_at, updated_at, last_login_at
+		SELECT id, tenant_id, username, email, first_name, last_name, role, status, password_hash, created_at, updated_at, last_login_at
 		FROM users 
-		WHERE username = $1`
+		WHERE username = $1 AND deleted_at IS NULL`
 
 	user := &entities.User{}
 	var lastLoginAt sql.NullTime
 
 	err := r.db.QueryRowContext(ctx, query, username).Scan(
 		&user.ID,
+		&user.TenantID,
 		&user.Username,
 		&user.Email,
 		&user.FirstName,
@@ -392,4 +395,170 @@ func (r *PostgreSQLUserRepository) ExistsByEmail(ctx context.Context, email stri
 	}
 
 	return exists, nil
+}
+
+// GetByTenantAndEmail retrieves a user by tenant ID and email
+func (r *PostgreSQLUserRepository) GetByTenantAndEmail(ctx context.Context, tenantID uuid.UUID, email string) (*entities.User, error) {
+	query := `
+		SELECT id, tenant_id, username, email, first_name, last_name, role, status, password_hash, created_at, updated_at, last_login_at
+		FROM users 
+		WHERE tenant_id = $1 AND email = $2 AND deleted_at IS NULL`
+
+	user := &entities.User{}
+	var lastLoginAt sql.NullTime
+
+	err := r.db.QueryRowContext(ctx, query, tenantID, email).Scan(
+		&user.ID,
+		&user.TenantID,
+		&user.Username,
+		&user.Email,
+		&user.FirstName,
+		&user.LastName,
+		&user.Role,
+		&user.Status,
+		&user.PasswordHash,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&lastLoginAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.NewNotFoundError("user")
+		}
+		return nil, fmt.Errorf("failed to get user by tenant and email: %w", err)
+	}
+
+	if lastLoginAt.Valid {
+		user.LastLoginAt = &lastLoginAt.Time
+	}
+
+	return user, nil
+}
+
+// GetByTenantAndUsername retrieves a user by tenant ID and username
+func (r *PostgreSQLUserRepository) GetByTenantAndUsername(ctx context.Context, tenantID uuid.UUID, username string) (*entities.User, error) {
+	query := `
+		SELECT id, tenant_id, username, email, first_name, last_name, role, status, password_hash, created_at, updated_at, last_login_at
+		FROM users 
+		WHERE tenant_id = $1 AND username = $2 AND deleted_at IS NULL`
+
+	user := &entities.User{}
+	var lastLoginAt sql.NullTime
+
+	err := r.db.QueryRowContext(ctx, query, tenantID, username).Scan(
+		&user.ID,
+		&user.TenantID,
+		&user.Username,
+		&user.Email,
+		&user.FirstName,
+		&user.LastName,
+		&user.Role,
+		&user.Status,
+		&user.PasswordHash,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&lastLoginAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.NewNotFoundError("user")
+		}
+		return nil, fmt.Errorf("failed to get user by tenant and username: %w", err)
+	}
+
+	if lastLoginAt.Valid {
+		user.LastLoginAt = &lastLoginAt.Time
+	}
+
+	return user, nil
+}
+
+// ListByTenant retrieves users for a specific tenant with pagination
+func (r *PostgreSQLUserRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID, pagination utils.PaginationInfo) ([]*entities.User, utils.PaginationInfo, error) {
+	// Get total count for this tenant
+	countQuery := `SELECT COUNT(*) FROM users WHERE tenant_id = $1 AND deleted_at IS NULL`
+	var total int64
+	err := r.db.QueryRowContext(ctx, countQuery, tenantID).Scan(&total)
+	if err != nil {
+		return nil, pagination, fmt.Errorf("failed to count users for tenant: %w", err)
+	}
+
+	// Calculate pagination
+	totalPages := int((total + int64(pagination.Limit) - 1) / int64(pagination.Limit))
+	offset := (pagination.Page - 1) * pagination.Limit
+
+	// Get users for this tenant
+	query := `
+		SELECT id, tenant_id, username, email, first_name, last_name, role, status, password_hash, created_at, updated_at, last_login_at
+		FROM users 
+		WHERE tenant_id = $1 AND deleted_at IS NULL
+		ORDER BY created_at DESC 
+		LIMIT $2 OFFSET $3`
+
+	rows, err := r.db.QueryContext(ctx, query, tenantID, pagination.Limit, offset)
+	if err != nil {
+		return nil, pagination, fmt.Errorf("failed to list users for tenant: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*entities.User
+	for rows.Next() {
+		user := &entities.User{}
+		var lastLoginAt sql.NullTime
+
+		err := rows.Scan(
+			&user.ID,
+			&user.TenantID,
+			&user.Username,
+			&user.Email,
+			&user.FirstName,
+			&user.LastName,
+			&user.Role,
+			&user.Status,
+			&user.PasswordHash,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&lastLoginAt,
+		)
+		if err != nil {
+			return nil, pagination, fmt.Errorf("failed to scan user: %w", err)
+		}
+
+		if lastLoginAt.Valid {
+			user.LastLoginAt = &lastLoginAt.Time
+		}
+
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, pagination, fmt.Errorf("failed to iterate users for tenant: %w", err)
+	}
+
+	// Update pagination info
+	resultPagination := utils.PaginationInfo{
+		Page:       pagination.Page,
+		Limit:      pagination.Limit,
+		TotalCount: int(total),
+		TotalPages: totalPages,
+		HasNext:    pagination.Page < totalPages,
+		HasPrev:    pagination.Page > 1,
+	}
+
+	return users, resultPagination, nil
+}
+
+// CountByTenant returns the count of users for a specific tenant
+func (r *PostgreSQLUserRepository) CountByTenant(ctx context.Context, tenantID uuid.UUID) (int, error) {
+	query := `SELECT COUNT(*) FROM users WHERE tenant_id = $1 AND deleted_at IS NULL`
+	
+	var count int
+	err := r.db.QueryRowContext(ctx, query, tenantID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count users for tenant: %w", err)
+	}
+
+	return count, nil
 }

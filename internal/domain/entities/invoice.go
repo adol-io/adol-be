@@ -34,6 +34,7 @@ const (
 // Invoice represents an invoice
 type Invoice struct {
 	ID              uuid.UUID       `json:"id"`
+	TenantID        uuid.UUID       `json:"tenant_id"`
 	InvoiceNumber   string          `json:"invoice_number"`
 	SaleID          uuid.UUID       `json:"sale_id"`
 	CustomerName    string          `json:"customer_name"`
@@ -93,7 +94,7 @@ type InvoiceTemplate struct {
 }
 
 // NewInvoice creates a new invoice from a sale
-func NewInvoice(invoiceNumber string, sale *Sale, createdBy uuid.UUID) (*Invoice, error) {
+func NewInvoice(tenantID uuid.UUID, invoiceNumber string, sale *Sale, createdBy uuid.UUID) (*Invoice, error) {
 	if invoiceNumber == "" {
 		return nil, errors.NewValidationError("invoice number is required", "invoice_number cannot be empty")
 	}
@@ -107,6 +108,7 @@ func NewInvoice(invoiceNumber string, sale *Sale, createdBy uuid.UUID) (*Invoice
 	now := time.Now()
 	invoice := &Invoice{
 		ID:             uuid.New(),
+		TenantID:       tenantID,
 		InvoiceNumber:  invoiceNumber,
 		SaleID:         sale.ID,
 		CustomerName:   sale.CustomerName,

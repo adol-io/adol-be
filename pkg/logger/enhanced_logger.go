@@ -20,6 +20,10 @@ const (
 	ContextKeyUserID ContextKey = "user_id"
 	// ContextKeyOperation is the key for operation name in context
 	ContextKeyOperation ContextKey = "operation"
+	// ContextKeyTenantID is the key for tenant ID in context
+	ContextKeyTenantID ContextKey = "tenant_id"
+	// ContextKeyTenantSlug is the key for tenant slug in context
+	ContextKeyTenantSlug ContextKey = "tenant_slug"
 )
 
 // LogLevel represents different log levels
@@ -67,6 +71,13 @@ type EnhancedLogger interface {
 
 	// Set log level dynamically
 	SetLevel(level LogLevel)
+
+	// Tenant-aware logging
+	LogTenantEvent(tenantID, event string, data interface{})
+	LogTenantAudit(tenantID, action, resource string, userID, details interface{})
+	LogTenantSecurity(tenantID, event, description string, userID interface{}, metadata map[string]interface{})
+	LogTenantUsage(tenantID string, resource string, usage, limit int64)
+	LogTenantSubscriptionEvent(tenantID, event string, subscriptionData interface{})
 
 	// Health check logging
 	LogHealthCheck(service string, status bool, responseTime time.Duration, details string)
@@ -189,6 +200,14 @@ func (l *enhancedLogrusLogger) WithContext(ctx context.Context) Logger {
 		fields["user_id"] = userID
 	}
 
+	if tenantID := ctx.Value(ContextKeyTenantID); tenantID != nil {
+		fields["tenant_id"] = tenantID
+	}
+
+	if tenantSlug := ctx.Value(ContextKeyTenantSlug); tenantSlug != nil {
+		fields["tenant_slug"] = tenantSlug
+	}
+
 	if operation := ctx.Value(ContextKeyOperation); operation != nil {
 		fields["operation"] = operation
 	}
@@ -306,6 +325,82 @@ func (l *enhancedLogrusLogger) LogHealthCheck(service string, status bool, respo
 	}).Log(logLevel, fmt.Sprintf("Health Check: %s is %s", service, statusStr))
 }
 
+// Tenant-specific logging methods
+
+func (l *enhancedLogrusLogger) LogTenantEvent(tenantID, event string, data interface{}) {
+	l.entry.WithFields(logrus.Fields{
+		"log_type":  "tenant_event",
+		"tenant_id": tenantID,
+		"event":     event,
+		"data":      data,
+		"timestamp": time.Now().UTC(),
+	}).Info(fmt.Sprintf("Tenant Event [%s]: %s", tenantID, event))
+}
+
+func (l *enhancedLogrusLogger) LogTenantAudit(tenantID, action, resource string, userID, details interface{}) {
+	l.entry.WithFields(logrus.Fields{
+		"log_type":  "tenant_audit",
+		"tenant_id": tenantID,
+		"action":    action,
+		"resource":  resource,
+		"user_id":   userID,
+		"details":   details,
+		"timestamp": time.Now().UTC(),
+	}).Info(fmt.Sprintf("Tenant Audit [%s]: %s performed on %s", tenantID, action, resource))
+}
+
+func (l *enhancedLogrusLogger) LogTenantSecurity(tenantID, event, description string, userID interface{}, metadata map[string]interface{}) {
+	fields := logrus.Fields{
+		"log_type":    "tenant_security",
+		"tenant_id":   tenantID,
+		"event":       event,
+		"description": description,
+		"user_id":     userID,
+		"timestamp":   time.Now().UTC(),
+	}
+
+	// Add metadata fields
+	for key, value := range metadata {
+		fields[key] = value
+	}
+
+	l.entry.WithFields(fields).Warn(fmt.Sprintf("Tenant Security [%s]: %s - %s", tenantID, event, description))
+}
+
+func (l *enhancedLogrusLogger) LogTenantUsage(tenantID string, resource string, usage, limit int64) {
+	usagePercent := float64(usage) / float64(limit) * 100
+	logLevel := logrus.InfoLevel
+
+	// Log warning if usage is over 80%
+	if usagePercent >= 80 {
+		logLevel = logrus.WarnLevel
+	}
+	// Log error if usage is at or over limit
+	if usage >= limit {
+		logLevel = logrus.ErrorLevel
+	}
+
+	l.entry.WithFields(logrus.Fields{
+		"log_type":       "tenant_usage",
+		"tenant_id":      tenantID,
+		"resource":       resource,
+		"current_usage":  usage,
+		"usage_limit":    limit,
+		"usage_percent":  fmt.Sprintf("%.2f%%", usagePercent),
+		"timestamp":      time.Now().UTC(),
+	}).Log(logLevel, fmt.Sprintf("Tenant Usage [%s]: %s usage at %.2f%% (%d/%d)", tenantID, resource, usagePercent, usage, limit))
+}
+
+func (l *enhancedLogrusLogger) LogTenantSubscriptionEvent(tenantID, event string, subscriptionData interface{}) {
+	l.entry.WithFields(logrus.Fields{
+		"log_type":          "tenant_subscription",
+		"tenant_id":         tenantID,
+		"event":             event,
+		"subscription_data": subscriptionData,
+		"timestamp":         time.Now().UTC(),
+	}).Info(fmt.Sprintf("Tenant Subscription [%s]: %s", tenantID, event))
+}
+
 // Helper methods
 
 func (l *enhancedLogrusLogger) addCallerInfo() *logrus.Entry {
@@ -344,6 +439,27 @@ func AddRequestIDToContext(ctx context.Context, requestID string) context.Contex
 // AddUserIDToContext adds user ID to context
 func AddUserIDToContext(ctx context.Context, userID string) context.Context {
 	return context.WithValue(ctx, ContextKeyUserID, userID)
+}
+
+// AddTenantToContext adds tenant information to context
+func AddTenantToContext(ctx context.Context, tenantID, tenantSlug string) context.Context {
+	ctx = context.WithValue(ctx, ContextKeyTenantID, tenantID)
+	return context.WithValue(ctx, ContextKeyTenantSlug, tenantSlug)
+}
+
+// GetTenantFromContext retrieves tenant information from context
+func GetTenantFromContext(ctx context.Context) (tenantID, tenantSlug string) {
+	if id := ctx.Value(ContextKeyTenantID); id != nil {
+		if idStr, ok := id.(string); ok {
+			tenantID = idStr
+		}
+	}
+	if slug := ctx.Value(ContextKeyTenantSlug); slug != nil {
+		if slugStr, ok := slug.(string); ok {
+			tenantSlug = slugStr
+		}
+	}
+	return tenantID, tenantSlug
 }
 
 // AddOperationToContext adds operation name to context

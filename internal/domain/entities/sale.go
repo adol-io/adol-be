@@ -32,6 +32,7 @@ const (
 // Sale represents a sales transaction
 type Sale struct {
 	ID             uuid.UUID       `json:"id"`
+	TenantID       uuid.UUID       `json:"tenant_id"`
 	SaleNumber     string          `json:"sale_number"`
 	CustomerName   string          `json:"customer_name,omitempty"`
 	CustomerEmail  string          `json:"customer_email,omitempty"`
@@ -66,7 +67,7 @@ type SaleItem struct {
 }
 
 // NewSale creates a new sale
-func NewSale(saleNumber, customerName, customerEmail, customerPhone string, createdBy uuid.UUID) (*Sale, error) {
+func NewSale(tenantID uuid.UUID, saleNumber, customerName, customerEmail, customerPhone string, createdBy uuid.UUID) (*Sale, error) {
 	if saleNumber == "" {
 		return nil, errors.NewValidationError("sale number is required", "sale_number cannot be empty")
 	}
@@ -74,6 +75,7 @@ func NewSale(saleNumber, customerName, customerEmail, customerPhone string, crea
 	now := time.Now()
 	sale := &Sale{
 		ID:             uuid.New(),
+		TenantID:       tenantID,
 		SaleNumber:     saleNumber,
 		CustomerName:   customerName,
 		CustomerEmail:  customerEmail,

@@ -21,6 +21,7 @@ const (
 // Product represents a product in the system
 type Product struct {
 	ID          uuid.UUID       `json:"id"`
+	TenantID    uuid.UUID       `json:"tenant_id"`
 	SKU         string          `json:"sku"`
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
@@ -36,7 +37,7 @@ type Product struct {
 }
 
 // NewProduct creates a new product
-func NewProduct(sku, name, description, category, unit string, price, cost decimal.Decimal, minStock int, createdBy uuid.UUID) (*Product, error) {
+func NewProduct(tenantID uuid.UUID, sku, name, description, category, unit string, price, cost decimal.Decimal, minStock int, createdBy uuid.UUID) (*Product, error) {
 	if err := validateProductInput(sku, name, category, unit, price, cost, minStock); err != nil {
 		return nil, err
 	}
@@ -44,6 +45,7 @@ func NewProduct(sku, name, description, category, unit string, price, cost decim
 	now := time.Now()
 	product := &Product{
 		ID:          uuid.New(),
+		TenantID:    tenantID,
 		SKU:         sku,
 		Name:        name,
 		Description: description,

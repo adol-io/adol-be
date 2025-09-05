@@ -31,6 +31,7 @@ const (
 // User represents a user in the system
 type User struct {
 	ID          uuid.UUID  `json:"id"`
+	TenantID    uuid.UUID  `json:"tenant_id"`
 	Username    string     `json:"username"`
 	Email       string     `json:"email"`
 	FirstName   string     `json:"first_name"`
@@ -44,7 +45,7 @@ type User struct {
 }
 
 // NewUser creates a new user
-func NewUser(username, email, firstName, lastName, password string, role UserRole) (*User, error) {
+func NewUser(tenantID uuid.UUID, username, email, firstName, lastName, password string, role UserRole) (*User, error) {
 	if err := validateUserInput(username, email, firstName, lastName, password); err != nil {
 		return nil, err
 	}
@@ -61,6 +62,7 @@ func NewUser(username, email, firstName, lastName, password string, role UserRol
 	now := time.Now()
 	user := &User{
 		ID:           uuid.New(),
+		TenantID:     tenantID,
 		Username:     username,
 		Email:        email,
 		FirstName:    firstName,

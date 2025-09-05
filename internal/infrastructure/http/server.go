@@ -109,6 +109,13 @@ func (s *Server) setupRoutes() {
 	// API v1 routes
 	v1 := s.router.Group("/api/v1")
 	{
+		// Public tenant routes (no authentication required)
+		tenants := v1.Group("/tenants")
+		{
+			tenants.POST("/register", s.registerTenant)
+			tenants.POST("/login", s.tenantLogin)
+		}
+
 		// Authentication routes
 		auth := v1.Group("/auth")
 		{
@@ -202,6 +209,35 @@ func (s *Server) setupRoutes() {
 				reports.GET("/sales/daily", s.getDailySalesReport)
 				reports.GET("/invoices", s.getInvoiceReport)
 				reports.GET("/products/top-selling", s.getTopSellingProducts)
+			}
+
+			// Tenant management routes (require tenant context)
+			tenant := protected.Group("/tenant")
+			// tenant.Use(s.tenantMiddleware.RequireActiveTenant()) // TODO: Add when tenant middleware is integrated
+			{
+				tenant.GET("/info", s.getTenant)
+				tenant.PUT("/info", s.updateTenant)
+				tenant.GET("/settings", s.getTenantSettings)
+				tenant.PUT("/settings", s.updateTenantSettings)
+				tenant.POST("/switch", s.switchTenant)
+			}
+
+			// Subscription management routes
+			subscription := protected.Group("/subscription")
+			// subscription.Use(s.tenantMiddleware.RequireActiveTenant()) // TODO: Add when tenant middleware is integrated
+			{
+				subscription.GET("/info", s.getSubscription)
+				subscription.PUT("/plan", s.updateSubscriptionPlan)
+				subscription.GET("/usage", s.getUsageAnalysis)
+			}
+
+			// System admin routes (for managing tenants)
+			sysadmin := protected.Group("/system")
+			// sysadmin.Use(s.systemAdminMiddleware()) // TODO: Add system admin middleware
+			{
+				sysadmin.GET("/tenants", s.listTenants)
+				sysadmin.PUT("/tenants/:tenant_id/activate", s.activateTenant)
+				sysadmin.PUT("/tenants/:tenant_id/suspend", s.suspendTenant)
 			}
 		}
 	}

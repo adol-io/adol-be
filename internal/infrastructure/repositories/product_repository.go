@@ -32,11 +32,12 @@ func NewPostgreSQLProductRepository(db *sql.DB) repositories.ProductRepository {
 // Create creates a new product
 func (r *PostgreSQLProductRepository) Create(ctx context.Context, product *entities.Product) error {
 	query := `
-		INSERT INTO products (id, sku, name, description, category, price, cost, status, unit, min_stock, created_at, updated_at, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+		INSERT INTO products (id, tenant_id, sku, name, description, category, price, cost, status, unit, min_stock, created_at, updated_at, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
 	_, err := r.db.ExecContext(ctx, query,
 		product.ID,
+		product.TenantID,
 		product.SKU,
 		product.Name,
 		product.Description,
@@ -70,7 +71,7 @@ func (r *PostgreSQLProductRepository) Create(ctx context.Context, product *entit
 // GetByID retrieves a product by ID
 func (r *PostgreSQLProductRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Product, error) {
 	query := `
-		SELECT id, sku, name, description, category, price, cost, status, unit, min_stock, created_at, updated_at, created_by
+		SELECT id, tenant_id, sku, name, description, category, price, cost, status, unit, min_stock, created_at, updated_at, created_by
 		FROM products 
 		WHERE id = $1 AND deleted_at IS NULL`
 
@@ -79,6 +80,7 @@ func (r *PostgreSQLProductRepository) GetByID(ctx context.Context, id uuid.UUID)
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&product.ID,
+		&product.TenantID,
 		&product.SKU,
 		&product.Name,
 		&product.Description,
@@ -496,4 +498,49 @@ func (r *PostgreSQLProductRepository) GetLowStockProducts(ctx context.Context, p
 	}
 
 	return products, resultPagination, nil
+}
+
+// GetByTenantAndSKU retrieves a product by tenant ID and SKU
+func (r *PostgreSQLProductRepository) GetByTenantAndSKU(ctx context.Context, tenantID uuid.UUID, sku string) (*entities.Product, error) {
+	query := `
+		SELECT id, tenant_id, sku, name, description, category, price, cost, status, unit, min_stock, created_at, updated_at, created_by
+		FROM products 
+		WHERE tenant_id = $1 AND sku = $2 AND deleted_at IS NULL`
+
+	product := &entities.Product{}
+	var priceStr, costStr string
+
+	err := r.db.QueryRowContext(ctx, query, tenantID, sku).Scan(
+		&product.ID,
+		&product.TenantID,
+		&product.SKU,
+		&product.Name,
+		&product.Description,
+		&product.Category,
+		&priceStr,
+		&costStr,
+		&product.Status,
+		&product.Unit,
+		&product.MinStock,
+		&product.CreatedAt,
+		&product.UpdatedAt,
+		&product.CreatedBy,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.NewNotFoundError("product")
+		}
+		return nil, fmt.Errorf("failed to get product by tenant and SKU: %w", err)
+	}
+
+	// Parse decimal values
+	if product.Price, err = decimal.NewFromString(priceStr); err != nil {
+		return nil, fmt.Errorf("failed to parse price: %w", err)
+	}
+	if product.Cost, err = decimal.NewFromString(costStr); err != nil {
+		return nil, fmt.Errorf("failed to parse cost: %w", err)
+	}
+
+	return product, nil
 }

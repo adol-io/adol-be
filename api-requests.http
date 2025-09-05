@@ -1,0 +1,512 @@
+###
+# ADOL POS Backend API Test Requests
+# For use with REST Client VS Code Extension
+# https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+###
+
+# Variables
+@baseUrl = http://localhost:8080
+@apiVersion = v1
+@apiUrl = {{baseUrl}}/api/{{apiVersion}}
+@accessToken = mock-token
+@refreshToken = mock-token
+
+###############################################
+# HEALTH CHECK
+###############################################
+
+### Health Check
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+### Metrics Check
+GET {{baseUrl}}/metrics
+Content-Type: application/json
+
+###############################################
+# AUTHENTICATION
+###############################################
+
+### Login (Admin User)
+# @name login
+POST {{apiUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "password"
+}
+
+### Login (Custom User)
+# @name loginCustom
+POST {{apiUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "testpass123"
+}
+
+### Refresh Token
+POST {{apiUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+### Logout
+POST {{apiUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###############################################
+# USER MANAGEMENT
+###############################################
+
+### Get All Users (with pagination and filters)
+GET {{apiUrl}}/users?page=1&limit=10&role=admin&status=active&search=admin
+Authorization: Bearer {{accessToken}}
+
+### Get User by ID
+GET {{apiUrl}}/users/550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer {{accessToken}}
+
+### Create New User
+POST {{apiUrl}}/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "username": "newuser123",
+  "email": "newuser@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "password": "securepassword123",
+  "role": "cashier",
+  "status": "active"
+}
+
+### Update User
+PUT {{apiUrl}}/users/550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "username": "updateduser",
+  "email": "updated@example.com",
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "role": "manager",
+  "status": "active"
+}
+
+### Delete User (Soft Delete)
+DELETE {{apiUrl}}/users/550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer {{accessToken}}
+
+### Change User Password
+PUT {{apiUrl}}/users/550e8400-e29b-41d4-a716-446655440000/password
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "current_password": "oldpassword",
+  "new_password": "newpassword123"
+}
+
+###############################################
+# PRODUCT MANAGEMENT
+###############################################
+
+### Get All Products (with filters)
+GET {{apiUrl}}/products?page=1&limit=10&category=Electronics&status=active&search=laptop&min_price=100&max_price=2000
+Authorization: Bearer {{accessToken}}
+
+### Get Product by ID
+GET {{apiUrl}}/products/550e8400-e29b-41d4-a716-446655440001
+Authorization: Bearer {{accessToken}}
+
+### Get Product by SKU
+GET {{apiUrl}}/products/sku/LAPTOP001
+Authorization: Bearer {{accessToken}}
+
+### Get Product Categories
+GET {{apiUrl}}/products/categories
+Authorization: Bearer {{accessToken}}
+
+### Get Products by Category
+GET {{apiUrl}}/products/category/Electronics?page=1&limit=10
+Authorization: Bearer {{accessToken}}
+
+### Create New Product
+POST {{apiUrl}}/products
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "sku": "LAPTOP001",
+  "name": "Gaming Laptop",
+  "description": "High-performance gaming laptop with RTX graphics",
+  "category": "Electronics",
+  "price": "1299.99",
+  "cost": "999.99",
+  "unit": "pcs",
+  "min_stock": 5,
+  "initial_stock": 10
+}
+
+### Update Product
+PUT {{apiUrl}}/products/550e8400-e29b-41d4-a716-446655440001
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "sku": "LAPTOP001-UPDATED",
+  "name": "Updated Gaming Laptop",
+  "description": "Updated high-performance gaming laptop",
+  "category": "Electronics",
+  "price": "1399.99",
+  "cost": "1099.99",
+  "unit": "pcs",
+  "min_stock": 3,
+  "status": "active"
+}
+
+### Delete Product (Soft Delete)
+DELETE {{apiUrl}}/products/550e8400-e29b-41d4-a716-446655440001
+Authorization: Bearer {{accessToken}}
+
+###############################################
+# STOCK MANAGEMENT
+###############################################
+
+### Get Stock Information
+GET {{apiUrl}}/stock?page=1&limit=10&low_stock=true
+Authorization: Bearer {{accessToken}}
+
+### Get Stock by Product ID
+GET {{apiUrl}}/stock/product/550e8400-e29b-41d4-a716-446655440001
+Authorization: Bearer {{accessToken}}
+
+### Get Stock Movements
+GET {{apiUrl}}/stock/movements?page=1&limit=10&product_id=550e8400-e29b-41d4-a716-446655440001&type=in&reason=purchase
+Authorization: Bearer {{accessToken}}
+
+### Update Stock (Stock In)
+POST {{apiUrl}}/stock/movements
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "product_id": "550e8400-e29b-41d4-a716-446655440001",
+  "type": "in",
+  "reason": "purchase",
+  "quantity": 20,
+  "reference": "PO-2024-001",
+  "notes": "New stock from supplier"
+}
+
+### Update Stock (Stock Out)
+POST {{apiUrl}}/stock/movements
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "product_id": "550e8400-e29b-41d4-a716-446655440001",
+  "type": "out",
+  "reason": "sale",
+  "quantity": 2,
+  "reference": "SALE-2024-001",
+  "notes": "Sold to customer"
+}
+
+### Stock Adjustment
+POST {{apiUrl}}/stock/movements
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "product_id": "550e8400-e29b-41d4-a716-446655440001",
+  "type": "out",
+  "reason": "adjustment",
+  "quantity": 1,
+  "reference": "ADJ-2024-001",
+  "notes": "Inventory adjustment - damaged item"
+}
+
+###############################################
+# SALES MANAGEMENT
+###############################################
+
+### Get All Sales
+GET {{apiUrl}}/sales?page=1&limit=10&status=completed&from_date=2024-01-01&to_date=2024-12-31&customer_name=John
+Authorization: Bearer {{accessToken}}
+
+### Get Sale by ID
+GET {{apiUrl}}/sales/550e8400-e29b-41d4-a716-446655440002
+Authorization: Bearer {{accessToken}}
+
+### Get Sale by Sale Number
+GET {{apiUrl}}/sales/number/SALE-2024-001
+Authorization: Bearer {{accessToken}}
+
+### Create New Sale
+POST {{apiUrl}}/sales
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "customer_name": "John Customer",
+  "customer_email": "john@example.com",
+  "customer_phone": "+1234567890",
+  "items": [
+    {
+      "product_id": "550e8400-e29b-41d4-a716-446655440001",
+      "quantity": 2,
+      "unit_price": "1299.99"
+    },
+    {
+      "product_id": "550e8400-e29b-41d4-a716-446655440003",
+      "quantity": 1,
+      "unit_price": "299.99"
+    }
+  ],
+  "discount_amount": "50.00",
+  "tax_rate": "10.0",
+  "payment_method": "card",
+  "notes": "Customer requested express delivery"
+}
+
+### Update Sale
+PUT {{apiUrl}}/sales/550e8400-e29b-41d4-a716-446655440002
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "customer_name": "Updated Customer Name",
+  "customer_email": "updated@example.com",
+  "status": "completed",
+  "notes": "Updated sale information"
+}
+
+### Complete Sale
+PUT {{apiUrl}}/sales/550e8400-e29b-41d4-a716-446655440002/complete
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "paid_amount": "2849.97",
+  "change_amount": "0.00",
+  "payment_method": "card"
+}
+
+### Cancel Sale
+PUT {{apiUrl}}/sales/550e8400-e29b-41d4-a716-446655440002/cancel
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Customer request"
+}
+
+### Get Sale Items
+GET {{apiUrl}}/sales/550e8400-e29b-41d4-a716-446655440002/items
+Authorization: Bearer {{accessToken}}
+
+###############################################
+# INVOICE MANAGEMENT
+###############################################
+
+### Get All Invoices
+GET {{apiUrl}}/invoices?page=1&limit=10&status=sent&from_date=2024-01-01&to_date=2024-12-31
+Authorization: Bearer {{accessToken}}
+
+### Get Invoice by ID
+GET {{apiUrl}}/invoices/550e8400-e29b-41d4-a716-446655440004
+Authorization: Bearer {{accessToken}}
+
+### Get Invoice by Number
+GET {{apiUrl}}/invoices/number/INV-2024-001
+Authorization: Bearer {{accessToken}}
+
+### Create Invoice from Sale
+POST {{apiUrl}}/invoices
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "sale_id": "550e8400-e29b-41d4-a716-446655440002",
+  "invoice_number": "INV-2024-001",
+  "due_date": "2024-12-31T23:59:59Z",
+  "paper_size": "a4",
+  "notes": "Thank you for your business!"
+}
+
+### Update Invoice
+PUT {{apiUrl}}/invoices/550e8400-e29b-41d4-a716-446655440004
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "sent",
+  "notes": "Updated invoice notes",
+  "due_date": "2024-12-31T23:59:59Z"
+}
+
+### Generate Invoice PDF
+GET {{apiUrl}}/invoices/550e8400-e29b-41d4-a716-446655440004/pdf?paper_size=a4
+Authorization: Bearer {{accessToken}}
+Accept: application/pdf
+
+### Send Invoice by Email
+POST {{apiUrl}}/invoices/550e8400-e29b-41d4-a716-446655440004/send
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "recipient_email": "customer@example.com",
+  "subject": "Invoice #INV-2024-001",
+  "message": "Please find attached your invoice. Thank you for your business!"
+}
+
+### Print Invoice
+POST {{apiUrl}}/invoices/550e8400-e29b-41d4-a716-446655440004/print
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "printer_name": "Default Printer",
+  "paper_size": "a4",
+  "copies": 1
+}
+
+###############################################
+# REPORTING
+###############################################
+
+### Sales Report
+GET {{apiUrl}}/reports/sales?from_date=2024-01-01&to_date=2024-12-31&group_by=daily
+Authorization: Bearer {{accessToken}}
+
+### Product Sales Report
+GET {{apiUrl}}/reports/products?from_date=2024-01-01&to_date=2024-12-31&category=Electronics
+Authorization: Bearer {{accessToken}}
+
+### Inventory Report
+GET {{apiUrl}}/reports/inventory?low_stock=true
+Authorization: Bearer {{accessToken}}
+
+### Revenue Report
+GET {{apiUrl}}/reports/revenue?from_date=2024-01-01&to_date=2024-12-31&group_by=monthly
+Authorization: Bearer {{accessToken}}
+
+###############################################
+# ADMIN ENDPOINTS
+###############################################
+
+### System Information
+GET {{apiUrl}}/admin/system/info
+Authorization: Bearer {{accessToken}}
+
+### Database Health
+GET {{apiUrl}}/admin/system/health/database
+Authorization: Bearer {{accessToken}}
+
+### Application Metrics
+GET {{apiUrl}}/admin/metrics
+Authorization: Bearer {{accessToken}}
+
+### Audit Logs
+GET {{apiUrl}}/admin/audit?page=1&limit=50&action=create&resource=product&from_date=2024-01-01
+Authorization: Bearer {{accessToken}}
+
+###############################################
+# BULK OPERATIONS
+###############################################
+
+### Bulk Import Products (CSV)
+POST {{apiUrl}}/products/bulk/import
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="products.csv"
+Content-Type: text/csv
+
+SKU,Name,Description,Category,Price,Cost,Unit,MinStock
+BULK001,Bulk Product 1,Description 1,Electronics,99.99,50.00,pcs,10
+BULK002,Bulk Product 2,Description 2,Electronics,199.99,100.00,pcs,5
+------WebKitFormBoundary--
+
+### Export Products to CSV
+GET {{apiUrl}}/products/export?format=csv&category=Electronics
+Authorization: Bearer {{accessToken}}
+Accept: text/csv
+
+### Export Sales to Excel
+GET {{apiUrl}}/sales/export?format=xlsx&from_date=2024-01-01&to_date=2024-12-31
+Authorization: Bearer {{accessToken}}
+Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+###############################################
+# FILE UPLOAD
+###############################################
+
+### Upload Product Image
+POST {{apiUrl}}/products/550e8400-e29b-41d4-a716-446655440001/image
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="image"; filename="product.jpg"
+Content-Type: image/jpeg
+
+< /path/to/product-image.jpg
+------WebKitFormBoundary--
+
+###############################################
+# DEVELOPMENT HELPERS
+###############################################
+
+### Clear all test data (Development only)
+# DELETE {{apiUrl}}/dev/clear-test-data
+# Authorization: Bearer {{accessToken}}
+
+### Seed sample data (Development only)  
+# POST {{apiUrl}}/dev/seed-data
+# Authorization: Bearer {{accessToken}}
+# Content-Type: application/json
+# 
+# {
+#   "include_users": true,
+#   "include_products": true,
+#   "include_sales": true,
+#   "count": 50
+# }
+
+###############################################
+# NOTES
+###############################################
+
+# Usage Instructions:
+# 1. Start with Health Check to verify the server is running
+# 2. Use Login to authenticate and get access token
+# 3. Copy the access_token from login response to @accessToken variable
+# 4. Use the authenticated endpoints with the token
+# 5. Update UUIDs in the requests with actual IDs from your system
+
+# Common HTTP Status Codes:
+# 200 - OK (Success)
+# 201 - Created (Resource created successfully)
+# 400 - Bad Request (Invalid input)
+# 401 - Unauthorized (Missing or invalid token)
+# 403 - Forbidden (Insufficient permissions)
+# 404 - Not Found (Resource not found)
+# 422 - Unprocessable Entity (Validation errors)
+# 500 - Internal Server Error
+
+# Token Management:
+# - Access tokens expire after 24h (configurable)
+# - Use refresh token to get new access token
+# - Always include "Bearer " prefix in Authorization header

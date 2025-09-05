@@ -1,405 +1,293 @@
-# ADOL - Enterprise Point of Sale Backend System
+# ADOL POS - Multi-Tenant Point of Sale System
 
-ADOL is a modern, enterprise-grade Point of Sale (POS) backend system built with Go, PostgreSQL, and hexagonal architecture. It provides comprehensive features for product management, inventory tracking, sales processing, and invoice generation with support for multiple paper sizes.
-
-## 🏗️ Architecture
-
-This project follows **Hexagonal Architecture** (Ports and Adapters) principles:
-
-- **Domain Layer**: Core business logic, entities, and domain services
-- **Application Layer**: Use cases and application services
-- **Infrastructure Layer**: External dependencies (database, HTTP, email, etc.)
-- **Adapters**: Interface adapters for external systems
+ADOL is a comprehensive, multi-tenant Point of Sale (POS) system built with Go, designed to serve multiple independent organizations through a single SaaS platform. The system provides complete data isolation, subscription-based feature gating, and scalable architecture.
 
 ## 🚀 Features
 
-### Core Features
-- **User Management**: Role-based authentication and authorization (Admin, Manager, Cashier, Employee)
-- **Product Management**: Complete CRUD operations with categorization and SKU management
-- **Inventory Management**: Real-time stock tracking with automatic reorder alerts
-- **Sales Processing**: Point-of-sale transactions with multiple payment methods
-- **Invoice Generation**: Professional invoices with multiple paper size support (A4, A5, Letter, Legal, Receipt)
-- **Reporting**: Comprehensive sales and inventory reports
+### Core POS Functionality
+- **Product Management**: Full inventory management with categories, pricing, and stock tracking
+- **Sales Processing**: Complete sales workflow with multiple payment methods
+- **User Management**: Role-based access control (Admin, Manager, Cashier, Employee)
+- **Reporting**: Basic and advanced analytics with export capabilities
+- **Invoice Generation**: Professional invoice creation and management
 
-### Technical Features
-- **RESTful API**: Clean, well-documented REST endpoints
-- **JWT Authentication**: Secure token-based authentication
-- **Database Migrations**: Version-controlled database schema changes
-- **Docker Support**: Containerized deployment with Docker Compose
-- **Comprehensive Logging**: Structured logging with multiple levels
-- **Error Handling**: Centralized error handling with custom error types
-- **Input Validation**: Request validation with detailed error messages
-- **Audit Trail**: Complete audit logging for all operations
+### Multi-Tenant Architecture
+- **Complete Tenant Isolation**: Database-level and application-level data separation
+- **Subscription Management**: Three-tier subscription system (Starter, Professional, Enterprise)
+- **Feature Gating**: Subscription-based access control to advanced features
+- **Usage Monitoring**: Real-time usage tracking with automatic limit enforcement
+- **Trial Management**: 30-day free trial for new tenants
+- **Custom Branding**: Tenant-specific configuration and branding options
 
-## 📋 Prerequisites
+### Enterprise Features
+- **API Access**: RESTful API for integrations (Enterprise plan)
+- **Multi-Location Support**: Manage multiple business locations (Professional+)
+- **Advanced Reporting**: Detailed analytics and business intelligence (Professional+)
+- **Webhook Support**: Real-time event notifications
+- **Audit Logging**: Comprehensive audit trail for compliance
+- **High Availability**: Scalable architecture with monitoring
 
+## 🏗️ Architecture
+
+### Technology Stack
+- **Backend**: Go 1.21+ with Gin web framework
+- **Database**: PostgreSQL 14+ with Row Level Security (RLS)
+- **Authentication**: JWT with tenant-aware claims
+- **Logging**: Structured logging with tenant context
+- **Monitoring**: Real-time usage and performance tracking
+- **Testing**: Comprehensive unit and integration tests
+
+### Multi-Tenancy Pattern
+- **Pattern**: Shared Database with Tenant Isolation
+- **Isolation**: Row Level Security (RLS) + Application filtering
+- **Identification**: UUID-based tenant identification
+- **Resolution**: Multiple methods (headers, subdomains, domains)
+
+## 📋 Subscription Plans
+
+### 🎯 Starter Plan (Free)
+- **Cost**: Free with 1% transaction fee
+- **Users**: Up to 2 users
+- **Products**: Unlimited
+- **Sales**: Unlimited
+- **Features**: Basic POS, Inventory, Basic Reporting
+- **Support**: Community support
+
+### 💼 Professional Plan (Rp300,000/month)
+- **Cost**: Rp300,000 per month
+- **Users**: Up to 10 users
+- **Products**: Unlimited
+- **Sales**: Unlimited
+- **Features**: All Starter + Advanced Reporting, Multi-Location
+- **Support**: Email support
+
+### 🏢 Enterprise Plan (Rp1,500,000/month)
+- **Cost**: Rp1,500,000 per month
+- **Users**: Unlimited
+- **Products**: Unlimited
+- **Sales**: Unlimited
+- **API Calls**: 10,000 per month
+- **Features**: All Professional + API Access, Custom Integrations
+- **Support**: Priority support with SLA
+
+## 🚀 Quick Start
+
+### Prerequisites
 - Go 1.21 or higher
-- PostgreSQL 12 or higher
-- Docker and Docker Compose (for containerized deployment)
-- Redis (optional, for caching and sessions)
+- PostgreSQL 14 or higher
+- Git
 
-## 🛠️ Installation
+### Installation
 
-### Option 1: Docker Compose (Recommended)
-
-1. **Clone the repository**
+1. **Clone the repository**:
    ```bash
    git clone https://github.com/nicklaros/adol.git
    cd adol
    ```
 
-2. **Copy environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-
-3. **Edit environment variables**
-   ```bash
-   nano .env  # Adjust configuration as needed
-   ```
-
-4. **Start the services**
-   ```bash
-   docker-compose up -d
-   ```
-
-5. **Run migrations** (after PostgreSQL is ready)
-   ```bash
-   # Wait for PostgreSQL to be ready, then run migrations
-   make db-up
-   ```
-   
-   **Note**: Even in Docker environments, migrations should be run separately to ensure proper sequencing and avoid race conditions.
-
-6. **Check service status**
-   ```bash
-   docker-compose ps
-   ```
-
-The API will be available at `http://localhost:8080` and pgAdmin at `http://localhost:5050`.
-
-### Option 2: Local Development
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/nicklaros/adol.git
-   cd adol
-   ```
-
-2. **Install dependencies**
+2. **Install dependencies**:
    ```bash
    go mod download
    ```
 
-3. **Set up PostgreSQL database**
-   ```bash
-   createdb adol_pos
-   ```
-
-4. **Run migrations**
-   ```bash
-   make db-up
-   ```
-   
-   **Important**: Migrations are NOT run automatically on application startup to prevent race conditions in multi-instance deployments. Always run migrations manually using the provided commands.
-
-5. **Copy and configure environment variables**
+3. **Setup environment**:
    ```bash
    cp .env.example .env
-   # Edit .env file with your configuration
+   # Edit .env with your configuration
    ```
 
-6. **Run the application**
+4. **Setup database**:
+   ```bash
+   createdb adol_pos
+   go run cmd/migrate/main.go up
+   ```
+
+5. **Start the server**:
    ```bash
    go run cmd/api/main.go
    ```
 
-## 📚 API Documentation
+The server will start on `http://localhost:8080`
+
+### Register Your First Tenant
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tenants/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tenant_name": "My Store",
+    "admin_username": "admin",
+    "admin_email": "admin@mystore.com",
+    "admin_password": "secure_password",
+    "admin_first_name": "John",
+    "admin_last_name": "Doe"
+  }'
+```
+
+## 📚 Documentation
+
+- [**Multi-Tenant Architecture**](docs/MULTI_TENANT_ARCHITECTURE.md) - Detailed architecture overview
+- [**API Examples**](docs/API_EXAMPLES.md) - Practical API usage examples
+- [**Deployment Guide**](docs/DEPLOYMENT.md) - Production deployment instructions
+- [**Configuration Reference**](docs/CONFIGURATION.md) - Environment variables and settings
+
+## 🔗 API Usage
 
 ### Authentication
 
-#### Login
-```http
-POST /api/v1/auth/login
-Content-Type: application/json
-
-{
-  "username": "admin",
-  "password": "password"
-}
-```
-
-#### Refresh Token
-```http
-POST /api/v1/auth/refresh
-Content-Type: application/json
-
-{
-  "refresh_token": "your_refresh_token"
-}
-```
-
-#### Logout
-```http
-POST /api/v1/auth/logout
-Authorization: Bearer your_access_token
-```
-
-### User Management
-
-#### List Users
-```http
-GET /api/v1/users?page=1&limit=10&role=admin&status=active
-Authorization: Bearer your_access_token
-```
-
-#### Create User
-```http
-POST /api/v1/users
-Authorization: Bearer your_access_token
-Content-Type: application/json
-
-{
-  "username": "newuser",
-  "email": "user@example.com",
-  "first_name": "John",
-  "last_name": "Doe",
-  "password": "securepassword",
-  "role": "cashier",
-  "status": "active"
-}
-```
-
-### Product Management
-
-#### List Products
-```http
-GET /api/v1/products?page=1&limit=10&category=electronics&search=laptop
-Authorization: Bearer your_access_token
-```
-
-#### Create Product
-```http
-POST /api/v1/products
-Authorization: Bearer your_access_token
-Content-Type: application/json
-
-{
-  "sku": "LAPTOP001",
-  "name": "Gaming Laptop",
-  "description": "High-performance gaming laptop",
-  "category": "Electronics",
-  "price": "1299.99",
-  "cost": "999.99",
-  "unit": "pcs",
-  "min_stock": 5,
-  "initial_stock": 10
-}
-```
-
-### Sales Management
-
-#### Create Sale
-```http
-POST /api/v1/sales
-Authorization: Bearer your_access_token
-Content-Type: application/json
-
-{
-  "customer_name": "John Customer",
-  "customer_email": "john@example.com",
-  "customer_phone": "+1234567890"
-}
-```
-
-#### Add Item to Sale
-```http
-POST /api/v1/sales/{sale_id}/items
-Authorization: Bearer your_access_token
-Content-Type: application/json
-
-{
-  "product_id": "product_uuid",
-  "quantity": 2
-}
-```
-
-#### Complete Sale
-```http
-POST /api/v1/sales/{sale_id}/complete
-Authorization: Bearer your_access_token
-Content-Type: application/json
-
-{
-  "paid_amount": "149.98",
-  "payment_method": "cash",
-  "discount_amount": "10.00",
-  "tax_percentage": "8.5",
-  "notes": "Customer discount applied"
-}
-```
-
-### Invoice Management
-
-#### Generate Invoice PDF
-```http
-GET /api/v1/invoices/{invoice_id}/pdf?paper_size=a4
-Authorization: Bearer your_access_token
-```
-
-#### Send Invoice Email
-```http
-POST /api/v1/invoices/{invoice_id}/email
-Authorization: Bearer your_access_token
-Content-Type: application/json
-
-{
-  "email_to": "customer@example.com",
-  "subject": "Your Invoice",
-  "paper_size": "a4"
-}
-```
-
-## 🏃‍♂️ Usage Examples
-
-### Default Admin Account
-- **Username**: `admin`
-- **Password**: `password`
-- **Email**: `admin@adol.pos`
-
-### Environment Variables
-
-Key environment variables for configuration:
+All API requests require tenant context and authentication:
 
 ```bash
-# Server
-SERVER_PORT=8080
+# Using tenant ID header
+curl -X GET http://localhost:8080/api/v1/products \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "X-Tenant-ID: tenant-uuid"
 
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=adol_pos
-DB_USER=postgres
-DB_PASSWORD=postgres
+# Using tenant slug header
+curl -X GET http://localhost:8080/api/v1/products \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "X-Tenant-Slug: my-store"
 
-# JWT
-JWT_SECRET_KEY=your-secret-key
-JWT_EXPIRATION_TIME=24h
-
-# Company Info (for invoices)
-COMPANY_NAME=Your Company
-COMPANY_ADDRESS=Your Address
-COMPANY_PHONE=+1234567890
-COMPANY_EMAIL=info@company.com
+# Using subdomain (in production)
+curl -X GET https://my-store.yourdomain.com/api/v1/products \
+  -H "Authorization: Bearer your_jwt_token"
 ```
 
-## 🗄️ Database Migrations
+### Key Endpoints
 
-**⚠️ Important**: Migrations are NOT executed automatically on application startup to prevent race conditions in multi-instance deployments.
-
-### Migration Commands
-
-```bash
-# Run all pending migrations
-make db-up
-
-# Rollback the last migration
-make db-down
-
-# Reset database (rollback all, then apply all)
-make db-reset
-
-# Create a new migration file
-make db-create-migration
-```
-
-### Production Deployment Workflow
-
-1. **Before deploying**: Run migrations on a single instance or dedicated migration job
-2. **Deploy application**: Start application instances without migrations
-3. **Verify**: Ensure all instances connect successfully
-
-### Development Workflow
-
-```bash
-# Setup database and run migrations
-make setup        # Creates .env file
-make db-up        # Applies migrations
-make run          # Starts the application
-```
+- `POST /api/v1/tenants/register` - Register new tenant
+- `POST /api/v1/auth/login` - User authentication
+- `GET /api/v1/subscription` - Get subscription details
+- `POST /api/v1/subscription/upgrade` - Upgrade subscription
+- `GET /api/v1/products` - List products (tenant-filtered)
+- `POST /api/v1/sales` - Create sale
+- `GET /api/v1/reports/advanced/*` - Advanced reporting (Pro+)
 
 ## 🧪 Testing
 
 ### Run Unit Tests
 ```bash
-go test ./...
+go test ./internal/domain/entities -v
+go test ./internal/application/usecases -v
 ```
 
 ### Run Integration Tests
 ```bash
-go test -tags=integration ./...
+go test ./tests/integration -v
 ```
 
-### API Health Check
+### Test Multi-Tenant Isolation
 ```bash
-curl http://localhost:8080/health
+# Run the multi-tenant integration test suite
+go test ./tests/integration -run TestMultiTenantIntegrationTestSuite -v
 ```
 
-## 📊 Database Schema
+## 🌍 Environment Variables
 
-The system uses PostgreSQL with the following main tables:
-- `users` - User accounts and authentication
-- `products` - Product catalog
-- `stock` - Inventory levels
-- `stock_movements` - Inventory transaction history
-- `sales` - Sales transactions
-- `sale_items` - Individual items in sales
-- `invoices` - Generated invoices
-- `invoice_items` - Invoice line items
+Key configuration options:
 
-## 🔧 Development
+```bash
+# Server Configuration
+SERVER_PORT=8080
 
-### Project Structure
-```
-adol/
-├── cmd/api/                    # Application entry point
-├── internal/
-│   ├── domain/                 # Domain layer
-│   │   ├── entities/          # Business entities
-│   │   ├── repositories/      # Repository interfaces
-│   │   └── services/         # Domain services
-│   ├── application/           # Application layer
-│   │   ├── usecases/         # Use cases
-│   │   └── ports/            # Application ports
-│   ├── infrastructure/        # Infrastructure layer
-│   │   ├── database/         # Database connections
-│   │   ├── http/            # HTTP handlers
-│   │   └── config/          # Configuration
-│   └── adapters/             # Adapters
-├── pkg/                       # Shared packages
-│   ├── errors/               # Error handling
-│   ├── logger/               # Logging
-│   └── utils/                # Utilities
-├── migrations/                # Database migrations
-├── docs/                     # Documentation
-└── test/                     # Test files
+# Database Configuration  
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=adol_pos
+
+# JWT Configuration
+JWT_SECRET_KEY=your-secret-key-min-32-chars
+JWT_ACCESS_TOKEN_EXPIRY=15m
+JWT_REFRESH_TOKEN_EXPIRY=168h
+JWT_INCLUDE_TENANT_CLAIMS=true
+
+# Multi-Tenancy Features
+FEATURE_ENABLE_MULTI_TENANCY=true
+FEATURE_ENABLE_SUBSCRIPTIONS=true
+FEATURE_ENABLE_USAGE_LIMITS=true
+FEATURE_ENABLE_TRIAL_PERIODS=true
+
+# Tenant Configuration
+TENANT_DEFAULT_TRIAL_DAYS=30
+TENANT_ALLOW_SUBDOMAINS=true
 ```
 
-### Adding New Features
+See [Configuration Reference](docs/CONFIGURATION.md) for complete options.
 
-1. **Domain Entity**: Add business logic in `internal/domain/entities/`
-2. **Repository Interface**: Define data access in `internal/domain/repositories/`
-3. **Use Case**: Implement business rules in `internal/application/usecases/`
-4. **HTTP Handler**: Add API endpoints in `internal/infrastructure/http/`
-5. **Migration**: Create database changes in `migrations/`
+## 🔒 Security Features
+
+### Data Isolation
+- **Row Level Security (RLS)**: Database-level tenant isolation
+- **Application Filtering**: Additional security layer in application code
+- **Tenant Context Validation**: Automatic tenant boundary enforcement
+
+### Authentication & Authorization
+- **JWT Tokens**: Secure token-based authentication with tenant claims
+- **Role-based Access**: Granular permissions per user role
+- **Feature Gates**: Subscription-based feature access control
+
+### Audit & Monitoring
+- **Tenant-aware Logging**: All actions logged with tenant context
+- **Usage Tracking**: Real-time monitoring of resource usage
+- **Security Events**: Automatic logging of security-relevant events
+
+## 📈 Monitoring & Observability
+
+### Metrics
+- Tenant registration and churn rates
+- Usage patterns and limit violations
+- Performance metrics per tenant
+- Revenue and subscription analytics
+
+### Logging
+All logs include tenant context for easy filtering and debugging:
+
+```json
+{
+  "timestamp": "2024-01-01T12:00:00Z",
+  "level": "info",
+  "message": "Product created",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "tenant_slug": "my-store",
+  "user_id": "770g8400-e29b-41d4-a716-446655440000"
+}
+```
+
+## 🚀 Deployment
+
+### Docker Deployment
+
+```bash
+# Build and run with Docker Compose
+docker-compose up -d
+```
+
+### Production Deployment
+
+See the [Deployment Guide](docs/DEPLOYMENT.md) for:
+- Database setup and migrations
+- Environment configuration
+- Load balancer setup
+- SSL certificate configuration
+- Monitoring setup
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow Go best practices and idioms
+- Write comprehensive tests for new features
+- Ensure tenant isolation in all new functionality
+- Update documentation for API changes
+- Add proper error handling and logging
 
 ## 📄 License
 
@@ -407,27 +295,46 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-For support and questions:
-- Create an issue on GitHub
-- Email: support@adol.pos
-- Documentation: [Wiki](https://github.com/nicklaros/adol/wiki)
+### Community Support (All Plans)
+- GitHub Issues
+- Documentation
+- Community Forum
 
-## 🚧 Roadmap
+### Professional Support (Pro+ Plans)
+- Email support: support@adol.pos
+- Response time: 24-48 hours
 
-- [ ] Mobile API endpoints
-- [ ] Real-time notifications
-- [ ] Advanced reporting dashboard
-- [ ] Multi-tenant support
-- [ ] Integration with external payment gateways
-- [ ] Barcode scanning support
-- [ ] Multi-language support
+### Enterprise Support (Enterprise Plan)
+- Priority support with SLA
+- Dedicated support channel
+- Custom integration assistance
 
-## ⭐ Acknowledgments
+## 🗺️ Roadmap
 
-Built with:
-- [Gin](https://github.com/gin-gonic/gin) - HTTP web framework
-- [PostgreSQL](https://www.postgresql.org/) - Database
-- [Golang Migrate](https://github.com/golang-migrate/migrate) - Database migrations
-- [Logrus](https://github.com/sirupsen/logrus) - Structured logging
-- [UUID](https://github.com/google/uuid) - UUID generation
-- [Decimal](https://github.com/shopspring/decimal) - Decimal arithmetic
+### Q1 2024
+- [ ] Multi-currency support
+- [ ] Advanced inventory management
+- [ ] Mobile app for POS operations
+
+### Q2 2024
+- [ ] E-commerce integration
+- [ ] Customer loyalty programs
+- [ ] Advanced analytics dashboard
+
+### Q3 2024
+- [ ] AI-powered sales forecasting
+- [ ] Third-party integrations marketplace
+- [ ] White-label solutions
+
+---
+
+## 📞 Contact
+
+- **Website**: [adol.pos](https://adol.pos)
+- **Email**: contact@adol.pos
+- **Support**: support@adol.pos
+- **Documentation**: [docs.adol.pos](https://docs.adol.pos)
+
+---
+
+Built with ❤️ in Indonesia 🇮🇩

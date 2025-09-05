@@ -190,6 +190,7 @@ __debug_bin
 
 # VSCode
 .vscode/
+__debug_*
 
 # Sublime Text
 *.sublime-project
@@ -208,3 +209,5 @@ __debug_bin
 auto-save-list
 tramp
 .\#*
+
+.qoder
